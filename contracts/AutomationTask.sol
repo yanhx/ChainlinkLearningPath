@@ -20,7 +20,6 @@ import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
  */
 
 contract AutomationTask is AutomationCompatible {
-    
     uint256 public constant SIZE = 10;
     uint256 public constant MAXIMUM_HEALTH = 1000;
     uint256[SIZE] public healthPoint;
@@ -29,12 +28,15 @@ contract AutomationTask is AutomationCompatible {
 
     /*
      * 步骤 1 - 在构造函数中完成数组 healthPoint 的初始化
-     */    
+     */
     constructor(uint256 _interval) {
         lastTimeStamp = block.timestamp;
         interval = _interval;
-        
+
         //在此添加 solidity 代码
+        for (uint256 i; i < SIZE; i++) {
+            healthPoint[i] = MAXIMUM_HEALTH;
+        }
     }
 
     /*
@@ -44,6 +46,7 @@ contract AutomationTask is AutomationCompatible {
      */
     function fight(uint256 fighter) public {
         //在此添加 solidity 代码
+        healthPoint[fighter] -= 100;
     }
 
     /* 
@@ -54,21 +57,26 @@ contract AutomationTask is AutomationCompatible {
      * 注意：
      * 这部分操作将由 Chainlink 预言机节点在链下计算，本地环境中已由脚本配置
      * 可以尝试在 checkUpKeep 函数中改变状态，观察是否会发生改变
-     */      
-    function checkUpkeep(
-        bytes memory /* checkData*/ 
-    ) 
-        public 
-        view 
-        override 
-        returns (
-            bool upkeepNeeded,
-            bytes memory /*performData*/
-        )
+     */
+    function checkUpkeep(bytes memory /* checkData*/ )
+        public
+        view
+        override
+        returns (bool upkeepNeeded, bytes memory /*performData*/ )
     {
         //在此添加和修改 solidity 代码
-        upkeepNeeded = true;
-        
+        bool[] memory arr = new bool[](SIZE);
+        if (block.timestamp > lastTimeStamp + interval) {
+            for (uint256 i; i < SIZE; i++) {
+                if (healthPoint[i] < 1000) {
+                    upkeepNeeded = true;
+                    arr[i] = true;
+                    //return (true, "");
+                }
+            }
+            return (upkeepNeeded, abi.encode(arr));
+        }
+        return (false, "");
     }
 
     /* 
@@ -78,12 +86,13 @@ contract AutomationTask is AutomationCompatible {
      * 注意：
      * 可以通过 performData 使用 checkUpkeep 的运算结果，减少 gas 费用
      */
-    function performUpkeep(
-        bytes memory /*performData*/
-    ) 
-        external 
-        override 
-    {
+    function performUpkeep(bytes memory performData) external override {
         //在此添加 solidity 代码
+        (bool[] memory arr) = abi.decode(performData, (bool[]));
+        for (uint256 i; i < SIZE; i++) {
+            if (arr[i]) {
+                healthPoint[i] = MAXIMUM_HEALTH;
+            }
+        }
     }
 }

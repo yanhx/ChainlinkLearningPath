@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.7;
+
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 /*
@@ -18,47 +19,47 @@ contract DataFeedTask {
     AggregatorV3Interface internal ethPriceFeed;
     address public owner;
 
-    modifier onlyOwner {
+    modifier onlyOwner() {
         require(msg.sender == owner);
         _;
     }
 
-     /**
+    /**
      * 步骤 1 - 在构造这里初始化 3 个 Aggregator
-     * 
+     *
      * 注意：
      * 通过 Remix 部署在非本地环境中时
      * 通过 https://docs.chain.link/data-feeds/price-feeds/addresses，获得 Aggregator Sepolia 测试网合约地址
      * 本地环境中相关参数已经在测试脚本中配置
-     *  */
-    constructor(
-        address _linkPriceFeed,
-        address _btcPriceFeed,
-        address _ethPriceFeed) {
+     *
+     */
+    constructor(address _linkPriceFeed, address _btcPriceFeed, address _ethPriceFeed) {
         owner = msg.sender;
-        
+
         //修改以下 solidity 代码
-        linkPriceFeed = AggregatorV3Interface(address(0));
-        btcPriceFeed = AggregatorV3Interface(address(0));
-        ethPriceFeed = AggregatorV3Interface(address(0));
+        linkPriceFeed = AggregatorV3Interface(_linkPriceFeed);
+        btcPriceFeed = AggregatorV3Interface(_btcPriceFeed);
+        ethPriceFeed = AggregatorV3Interface(_ethPriceFeed);
     }
 
     /**
-     * 步骤 2 - 完成 getLinkLatestPrice 函数 
+     * 步骤 2 - 完成 getLinkLatestPrice 函数
      * 获得 link/usd 的价格数据
      */
     function getLinkLatestPrice() public view returns (int256) {
         //在此添加并且修改 solidity 代码
-        return 0;
+        (, int256 answer,,,) = linkPriceFeed.latestRoundData();
+        return answer;
     }
 
     /**
      * 步骤 3 - 完成 getBtcLatestPrice 函数
      * 获得 btc/usd 的价格数据
-     */  
+     */
     function getBtcLatestPrice() public view returns (int256) {
         //在此添加并且修改 solidity 代码
-        return 0;
+        (, int256 answer,,,) = btcPriceFeed.latestRoundData();
+        return answer;
     }
 
     /**
@@ -67,17 +68,18 @@ contract DataFeedTask {
      */
     function getEthLatestPrice() public view returns (int256) {
         //在此添加并且修改 solidity 代码
-        return 0;
+        (, int256 answer,,,) = ethPriceFeed.latestRoundData();
+        return answer;
     }
 
     /**
      * 步骤 5 - 通过 Remix 将合约部署合约
-     * 
+     *
      * 任务成功标志：
      * 合约部署成功
      * 获取 link/usd, btc/usd, eth/usd 价格
-     */ 
-    
+     */
+
     function getLinkPriceFeed() public view returns (AggregatorV3Interface) {
         return linkPriceFeed;
     }
@@ -85,7 +87,7 @@ contract DataFeedTask {
     function getBtcPriceFeed() public view returns (AggregatorV3Interface) {
         return btcPriceFeed;
     }
- 
+
     function getEthPriceFeed() public view returns (AggregatorV3Interface) {
         return ethPriceFeed;
     }

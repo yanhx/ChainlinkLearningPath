@@ -16,10 +16,9 @@ import "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
  * 2. 通过 Remix 在 Ethereum Sepolia 测试网部署，并且测试执行是否如预期
 */
 
-
 contract VRFTask is VRFConsumerBaseV2 {
     VRFCoordinatorV2Interface immutable COORDINATOR;
-    
+
     /* 
      * 步骤 1 - 获得 VRFCoordinator 合约的地址和所对应的 keyHash
      * 修改变量
@@ -32,18 +31,18 @@ contract VRFTask is VRFConsumerBaseV2 {
      * https://docs.chain.link/docs/vrf/v2/supported-networks/，获取 keyHash 的指和 vrfCoordinator 的地址
      * 本地环境在测试脚本中已经自动配置
      * 
-     */ 
+     */
 
     // Chainlink VRF 在接收到请求后，会通过 fulfillRandomWords 将数据写回到用户合约，此过程需要消耗 gas
     // CALL_BACK_LIMIT 是回调函数可以消耗的最大 gas，根据回调函数的逻辑适当调整 CALL_BACK_LIMIT
     // 详情请查看：https://docs.chain.link/vrf/v2/subscription/examples/get-a-random-number#analyzing-the-contract
-    uint32 constant CALL_BACK_LIMIT = 100;
-    
+    uint32 constant CALL_BACK_LIMIT = 1000000;
+
     // Chainlink VRF 在返回随机数之前应该等待的 Confirmation，值越大，返回的值越安全
-    uint16 constant REQUEST_CONFIRMATIONS = 1;
+    uint16 constant REQUEST_CONFIRMATIONS = 3;
 
     // Chainlink VRF 在每次请求后返回的随机数数量
-    uint32 constant NUM_WORDS = 1;
+    uint32 constant NUM_WORDS = 5;
 
     // 非本地环境部署，构造函数需要对 s_subscriptionId 和 s_keyHash 赋值（本地测试时不需要配置）
     // s_subscriptionId 是 VRF subscription ID（订阅 ID）
@@ -53,53 +52,68 @@ contract VRFTask is VRFConsumerBaseV2 {
     // 在这里查看  https://docs.chain.link/vrf/v2/subscription/supported-networks
     bytes32 immutable s_keyHash;
 
-    uint256[] public s_randomWords;
+    uint256[] public s_randomWords = new uint256[](NUM_WORDS);
     uint256 public s_requestId;
 
     address s_owner;
 
     event ReturnedRandomness(uint256[] randomWords);
 
-    modifier onlyOwner {
+    modifier onlyOwner() {
         require(msg.sender == s_owner);
         _;
     }
 
-    /**  
+    /**
      * 步骤 2 - 在构造函数中，初始化相关变量
      * COORDINATOR，s_subscriptionId 和 s_keyHash
-     * */
-    constructor(
-        uint64 _subscriptionId,
-        address vrfCoordinator,
-        bytes32 _keyHash
-    ) VRFConsumerBaseV2(vrfCoordinator) {
+     *
+     */
+    constructor(uint64 _subscriptionId, address vrfCoordinator, bytes32 _keyHash) VRFConsumerBaseV2(vrfCoordinator) {
         s_owner = msg.sender;
-        
+
         //修改以下 solidity 代码
-        COORDINATOR = VRFCoordinatorV2Interface(address(0));
-        s_subscriptionId = 0;
-        s_keyHash = "";
+        COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
+        s_subscriptionId = _subscriptionId;
+        s_keyHash = _keyHash;
     }
 
-    /** 
+    /**
      * 步骤 3 - 发送随机数请求
-     * */ 
+     *
+     */
     function requestRandomWords() external onlyOwner {
         //在此添加并且修改 solidity 代码
+        s_requestId = COORDINATOR.requestRandomWords(
+            s_keyHash, s_subscriptionId, REQUEST_CONFIRMATIONS, CALL_BACK_LIMIT, NUM_WORDS
+        );
     }
 
     /**
      * 步骤 4 - 接受随机数，完成逻辑获取 5 个 5 以内**不重复**的随机数
      * 关于如何使得获取的随机数不重复，清参考以下代码
      * https://gist.github.com/cleanunicorn/d27484a2488e0eecec8ce23a0ad4f20b
-     *  */ 
-    function fulfillRandomWords(uint256 requestId, uint256[] memory _randomWords)
-        internal
-        override
-    {
+     *
+     */
+    function fulfillRandomWords(uint256 requestId, uint256[] memory _randomWords) internal override {
         //在此添加 solidity 代码
-        
+        for (uint256 i; i < NUM_WORDS; i++) {
+            s_randomWords[i] = i + 1;
+        }
+        uint256 last_item = s_randomWords.length - 1;
+        for (uint256 i; i < NUM_WORDS - 2; i++) {
+            uint256 selected_item = uint256(_randomWords[i]) % last_item;
+            // Swap items `selected_item <> last_item`.
+            uint256 aux = s_randomWords[last_item];
+            s_randomWords[last_item] = s_randomWords[selected_item];
+            s_randomWords[selected_item] = aux;
+
+            // Decrease the size of the possible shuffle
+            // to preserve the already shuffled items.
+            // The already shuffled items are at the end of the array.
+            last_item--;
+        }
+
         emit ReturnedRandomness(s_randomWords);
     }
 }

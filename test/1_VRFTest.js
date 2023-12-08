@@ -1,7 +1,7 @@
 const { loadFixture } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 const { expect } = require("chai");
 
-describe("单元测试：Chainlink VRF", async ()=> {
+describe("单元测试:Chainlink VRF", async ()=> {
 
     async function deployVRFConsumerFixture() {
         const [deployer] = await ethers.getSigners();
@@ -64,7 +64,21 @@ describe("单元测试：Chainlink VRF", async ()=> {
         await VRFConsumer.requestRandomWords();
         const requestId = await VRFConsumer.s_requestId();
 
-        
+        // VRFCoordinator.on('*', event => {
+        //     console.log('========================');
+        //     console.log(event.args);
+        //     console.log('------------------------');
+        //     console.log(event.eventName);
+        //     console.log('------------------------');
+        //     console.log(event.eventSignature);
+        //     console.log('------------------------');
+        //     console.log(event.fragment);
+        //     console.log('------------------------');
+        //     console.log(JSON.stringify(event.log));
+        //   });
+
+
+        //console.log(requestId,VRFConsumer.target);
         await expect(
             VRFCoordinator.fulfillRandomWords(
                 requestId,
@@ -77,6 +91,7 @@ describe("单元测试：Chainlink VRF", async ()=> {
         const rand2 = await VRFConsumer.s_randomWords(2);
         const rand3 = await VRFConsumer.s_randomWords(3);
         const rand4 = await VRFConsumer.s_randomWords(4);
+        //console.log(rand0, rand1, rand2, rand3, rand4);
 
         expect(rand0).to.be.above(0, "1st random number is not greater than 0");
         expect(rand1).to.be.above(0, "1st random number is not greater than 0");
